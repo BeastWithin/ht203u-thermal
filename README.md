@@ -100,6 +100,10 @@ Reports from Windows and macOS users are welcome.
 
 ## Android
 
+**Download:** get the latest APK from the
+[Releases page](https://github.com/BeastWithin/ht203u-thermal/releases) and install it on
+your phone. You may need to allow installing apps from your browser or file manager.
+
 The app in [`android/`](android/) shows the same live view on a phone. It is written in
 Kotlin, uses a USB OTG cable, and shows the same min, max and spot readout as the
 desktop viewer.
@@ -108,20 +112,24 @@ The camera streams over isochronous USB, which Android's Java USB API cannot rea
 app uses the [AndroidUSBCamera](https://github.com/jiangdongguo/AndroidUSBCamera) UVC
 library (Apache-2.0). Its prebuilt `libuvc-3.2.9.aar` is included in `android/app/libs/`.
 
-Build and install (needs JDK 17 and the Android SDK, API 34):
+Build from source (needs JDK 17 and the Android SDK, API 34):
 
 ```
 cd android
-./gradlew assembleDebug
+./gradlew assembleDebug          # debug APK
+./gradlew assembleRelease        # release APK, needs your own signing key (see below)
 adb install app/build/outputs/apk/debug/app-debug.apk
 ```
+
+For a signed release build, set `ht203u.storeFile`, `ht203u.storePassword`, `ht203u.keyAlias`
+and `ht203u.keyPassword` in `~/.gradle/gradle.properties`. Keep the key file out of the repo.
 
 Or open the `android/` folder in Android Studio and press Run.
 
 Connect the camera to the phone with a USB-OTG adapter, then accept the USB permission
 prompt. Phones that do not support USB host mode will not work.
 
-Status: the app builds, but it has **not yet been tested on a phone**.
+Tested on a phone with the HT-203U over USB OTG, using the debug build.
 
 ## Licence
 

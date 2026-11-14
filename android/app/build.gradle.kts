@@ -15,9 +15,23 @@ android {
         versionName = "0.1"
     }
 
+    signingConfigs {
+        create("release") {
+            // set in ~/.gradle/gradle.properties, never committed
+            val props = project.findProperty("ht203u.storeFile")?.let { project.properties }
+            if (props != null) {
+                storeFile = file(project.property("ht203u.storeFile") as String)
+                storePassword = project.property("ht203u.storePassword") as String
+                keyAlias = project.property("ht203u.keyAlias") as String
+                keyPassword = project.property("ht203u.keyPassword") as String
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
