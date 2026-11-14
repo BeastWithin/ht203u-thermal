@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId = "com.beastin.ht203u"
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 33   // 34 needs RECEIVER_EXPORTED flags the bundled UVC library does not pass
         versionCode = 1
         versionName = "0.1"
     }
