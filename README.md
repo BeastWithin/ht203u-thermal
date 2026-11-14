@@ -100,8 +100,28 @@ Reports from Windows and macOS users are welcome.
 
 ## Android
 
-The Android viewer is not written yet. The camera is a standard USB video class
-device, so a UVC library such as UVCCamera should be able to read it.
+The app in [`android/`](android/) shows the same live view on a phone. It is written in
+Kotlin, uses a USB OTG cable, and shows the same min, max and spot readout as the
+desktop viewer.
+
+The camera streams over isochronous USB, which Android's Java USB API cannot read, so the
+app uses the [AndroidUSBCamera](https://github.com/jiangdongguo/AndroidUSBCamera) UVC
+library (Apache-2.0). Its prebuilt `libuvc-3.2.9.aar` is included in `android/app/libs/`.
+
+Build and install (needs JDK 17 and the Android SDK, API 34):
+
+```
+cd android
+./gradlew assembleDebug
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+Or open the `android/` folder in Android Studio and press Run.
+
+Connect the camera to the phone with a USB-OTG adapter, then accept the USB permission
+prompt. Phones that do not support USB host mode will not work.
+
+Status: the app builds, but it has **not yet been tested on a phone**.
 
 ## Licence
 

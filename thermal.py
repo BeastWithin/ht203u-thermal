@@ -1,3 +1,11 @@
+# Copyright (C) 2026 Beastin
+#
+# This file is part of ht203u-thermal.
+#
+# ht203u-thermal is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version. It is distributed WITHOUT ANY WARRANTY; see the LICENSE file.
 #!/usr/bin/env python3
 """
 HTi HT-203U (USB UVC, 256x384 YUYV) thermal viewer for Linux.
