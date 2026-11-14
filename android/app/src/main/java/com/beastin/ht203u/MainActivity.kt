@@ -10,8 +10,11 @@
  */
 package com.beastin.ht203u
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.SurfaceTexture
 import android.hardware.usb.UsbDevice
 import android.os.Bundle
 import android.os.Handler
@@ -28,6 +31,7 @@ class MainActivity : Activity() {
         private const val VENDOR_ID = 0x0bda      // Realtek
         private const val PRODUCT_ID = 0x5830     // HT-203U
         private const val REFRESH_MS = 33L        // about 30 fps on screen
+        private const val CAMERA_REQUEST = 42
     }
 
     private lateinit var monitor: USBMonitor
@@ -37,6 +41,8 @@ class MainActivity : Activity() {
     private val bitmap = Bitmap.createBitmap(ThermalProcessor.W, ThermalProcessor.IMG_H, Bitmap.Config.ARGB_8888)
     private val handler = Handler(Looper.getMainLooper())
     private var camera: UVCCamera? = null
+    // off-screen surface: the library's native frame thread only starts with a preview surface
+    private var previewSurface: SurfaceTexture? = null
     private var shownSequence = -1L
 
     private val refresh = object : Runnable {
@@ -59,24 +65,24 @@ class MainActivity : Activity() {
     }
 
     private val usbListener = object : USBMonitor.OnDeviceConnectListener {
-        override fun onAttach(device: UsbDevice) {
-            if (isThermal(device)) monitor.requestPermission(device)
+        override fun onAttach(device: UsbDevice?) {
+            if (device != null && isThermal(device)) handler.post { requestUsb(device) }
         }
 
-        override fun onConnect(device: UsbDevice, ctrlBlock: USBMonitor.UsbControlBlock, createNew: Boolean) {
-            if (isThermal(device)) openCamera(ctrlBlock)
+        override fun onConnect(device: UsbDevice?, ctrlBlock: USBMonitor.UsbControlBlock?, createNew: Boolean) {
+            if (device != null && ctrlBlock != null && isThermal(device)) openCamera(ctrlBlock)
         }
 
-        override fun onDisconnect(device: UsbDevice, ctrlBlock: USBMonitor.UsbControlBlock) {
+        override fun onDisconnect(device: UsbDevice?, ctrlBlock: USBMonitor.UsbControlBlock?) {
             closeCamera()
             status("Camera disconnected")
         }
 
-        override fun onDetach(device: UsbDevice) {
-            if (isThermal(device)) status("Camera unplugged")
+        override fun onDetach(device: UsbDevice?) {
+            if (device != null && isThermal(device)) status("Camera unplugged")
         }
 
-        override fun onCancel(device: UsbDevice) {
+        override fun onCancel(device: UsbDevice?) {
             status("USB permission denied")
         }
     }
@@ -93,8 +99,33 @@ class MainActivity : Activity() {
     override fun onStart() {
         super.onStart()
         monitor.register()
-        // a camera that is already plugged in when the app starts
-        monitor.deviceList.filter { isThermal(it) }.forEach { monitor.requestPermission(it) }
+        if (hasCameraPermission()) {
+            requestUsbForThermalCameras()
+        } else {
+            requestPermissions(arrayOf(Manifest.permission.CAMERA), CAMERA_REQUEST)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == CAMERA_REQUEST) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                requestUsbForThermalCameras()
+            } else {
+                status("Camera permission is needed for USB video")
+            }
+        }
+    }
+
+    private fun hasCameraPermission() =
+        checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+
+    private fun requestUsbForThermalCameras() {
+        monitor.deviceList.filter { isThermal(it) }.forEach { requestUsb(it) }
+    }
+
+    private fun requestUsb(device: UsbDevice) {
+        monitor.requestPermission(device)
     }
 
     override fun onResume() {
@@ -133,6 +164,9 @@ class MainActivity : Activity() {
             )
             // raw frames, no preview surface needed
             cam.setFrameCallback(IFrameCallback { frame -> processor.process(frame) }, UVCCamera.PIXEL_FORMAT_RAW)
+            val surface = SurfaceTexture(0)
+            previewSurface = surface
+            cam.setPreviewTexture(surface)
             cam.startPreview()
             camera = cam
             status("Streaming")
@@ -151,9 +185,12 @@ class MainActivity : Activity() {
             }
         }
         camera = null
+        previewSurface?.release()
+        previewSurface = null
     }
 
+    /** USB callbacks run on a background thread, so hop to the UI thread before touching views. */
     private fun status(text: String) {
-        statusView.text = text
+        handler.post { statusView.text = text }
     }
 }

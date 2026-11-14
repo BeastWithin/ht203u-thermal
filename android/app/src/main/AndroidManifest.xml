@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-feature android:name="android.hardware.usb.host" android:required="true" />
+    <!-- Android requires this for USB video-class (UVC) devices -->
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:label="HT-203U Thermal"
